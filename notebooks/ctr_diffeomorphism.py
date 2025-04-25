@@ -471,7 +471,6 @@ def create_shifts(max_n, Ls, betas):
         # Convert to discrete index
         shift = int(max_n * scaled_length)
         shifts.append(shift)
-    print(shifts)
     return shifts
 
 def old_create_shifts(max_n, Ls, betas):
@@ -519,7 +518,6 @@ def do_forward_diffeo(X, alphas, betas, params, ms, vs, EIs, Ls):
     for n in range(len(Ls),0,-1):
         for i in range(ms.shape[0]):
             c_tmp = [Z[int(m+1)+shifts[len(Ls)-1-(n-1)],:] * np.ones(Z.shape) for m in ms[i,:]]
-            #c_tmp = [cs[i,m:m+3]* np.ones(Z.shape) for m in range(0,cs.shape[1],3)]
             v_tmp = [diffeoRz(alphas[j//3])@vs[i,j:j+3].T * np.ones(Z.shape) for j in range(0,vs.shape[1],3)]
             params_tmp = [param for param in params[i,:]] 
 
@@ -527,9 +525,16 @@ def do_forward_diffeo(X, alphas, betas, params, ms, vs, EIs, Ls):
                 if n > 0:
                     Z = gauss_step(params_tmp, Z, c_tmp, v_tmp, EIs[:n],j)
 
-    path_length_X = np.sum(np.linalg.norm(np.diff(X, axis=0), axis=1))
+    # Calculate the total path length of the input points X based on beta
+    path_length_X = (1-betas[0]) * Ls[0]
+
+    # Create a mask to identify valid points in Z based on the cumulative path length and beta
     valid_points_mask = np.cumsum(np.linalg.norm(np.diff(Z, axis=0), axis=1)) <= path_length_X
-    valid_points_mask = np.insert(valid_points_mask, 0, True)  # Include the first point
+
+    # Ensure the first point is always included in the mask
+    valid_points_mask = np.insert(valid_points_mask, 0, True)
+
+    # Return only the valid points from Z
     return Z[valid_points_mask]
 
 
@@ -559,7 +564,6 @@ def do_inverse_diffeo(X, alphas, betas, params, ms, vs, EIs, Ls):
     for n in range(len(Ls),0,-1):
         for i in range(ms.shape[0]):
             c_tmp = [Z[int(m)+shifts[len(Ls)-1-(n-1)],:] * np.ones(Z.shape) for m in ms[i,:]]
-            #c_tmp = [cs[i,m:m+3]* np.ones(Z.shape) for m in range(0,cs.shape[1],3)]
             v_tmp = [diffeoRz(alphas[j//3])@vs[i,j:j+3].T * np.ones(Z.shape) for j in range(0,vs.shape[1],3)]
             params_tmp = [param for param in params[i,:]] 
 
@@ -567,7 +571,14 @@ def do_inverse_diffeo(X, alphas, betas, params, ms, vs, EIs, Ls):
                 if n > 0:
                     Z = inv_gauss_step(params_tmp, Z, c_tmp, v_tmp, EIs[:n],j)
 
-    result = Z[:X.shape[0]]
-    max_z = np.max(X[:, 2])
-    valid_points_mask = (result[:, 2] >= 0) & (result[:, 2] <= max_z)
-    return result[valid_points_mask]
+    # Calculate the total path length of the input points X based on beta
+    path_length_X = (1-betas[0]) * Ls[0]
+
+    # Create a mask to identify valid points in Z based on the cumulative path length and beta
+    valid_points_mask = np.cumsum(np.linalg.norm(np.diff(Z, axis=0), axis=1)) <= path_length_X
+
+    # Ensure the first point is always included in the mask
+    valid_points_mask = np.insert(valid_points_mask, 0, True)
+
+    # Return only the valid points from Z
+    return Z[valid_points_mask]
