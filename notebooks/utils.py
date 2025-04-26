@@ -185,14 +185,41 @@ from typing import List, Tuple
 def to_index(values, step=0.01):
     return [round(v/step) for v in values]
 
+
 def get_plot_len_and_size(
+    ctr,
+    array_len: int,
+    beta: List[float],
+) -> Tuple[List[int], List[float]]:
+    segments = ctr.get_ordered_segments(False)[1:]
+    print(segments)
+    max_len = ctr.tubes[0][1].params["L"]
+    indices = []
+    tube_ds = []
+    for i, tube in enumerate(ctr.tubes[::-1]): # reverse tube array to start with most outer tube
+        params = tube[1].params
+        L = params["L"]
+        str_L = params["straight_length"]
+        tube_ds.append(params["r_outer"])
+        if str_L > (1-beta[i])*L:
+            normalized_len = segments[2*i]/max_len
+            indices.append(int(array_len*normalized_len))
+        else:
+            normalized_len = segments[2*i+1]/max_len
+            indices.append(int(array_len*normalized_len))
+        print(normalized_len)
+        print(int(array_len * normalized_len))
+
+    return indices, tube_ds
+
+def old_get_plot_len_and_size(
     ctr,
     array_len: int,
     beta: List[float],
 ) -> Tuple[List[int], List[float]]:
     """
     Compute discrete backbone indices that mark where each tube ends and
-    return the corresponding outer radii.
+    return the corresponding outer diameters.
 
     Parameters
     ----------

@@ -458,24 +458,17 @@ def create_shifts(max_n, Ls, betas):
     reference_length = Ls[0]
 
     # Calculate shifts
-    shifts = [0]  # First shift is always 0
+    shifts = [0]  # First shift is always 0, as we do not shift the inner tube, we only cut the projection by beta
     
     # For each segment (in reverse, as in the original)
     for i in range(len(Ls) - 1, 0, -1):
         # Calculate the normalized segment length relative to reference
         normalized_length = Ls[i] / reference_length
         
-        # Apply beta scaling
-        #scaled_length = normalized_length * (1-betas[i])
-        
         # Convert to discrete index
-        shift =  int(max_n*normalized_length/2) - int(betas[i]*max_n/2)
-        print(shift)
+        shift =  int(max_n*normalized_length/2) - int(betas[i]*max_n/2) # we divide by 2 as we care about the kernel shape
         shifts.append(shift)
     return shifts
-
-def old_create_shifts(max_n, Ls, betas):
-    return [0] + [int((max_n-2)*(Ls[i]/Ls[0])) for i in range(len(Ls)-1,0,-1)]
 
 def extend_input(X):
     """
