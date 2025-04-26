@@ -456,7 +456,7 @@ def create_shifts(max_n, Ls, betas):
     """
     # Use the first length as the reference length
     reference_length = Ls[0]
-    
+
     # Calculate shifts
     shifts = [0]  # First shift is always 0
     
@@ -466,10 +466,11 @@ def create_shifts(max_n, Ls, betas):
         normalized_length = Ls[i] / reference_length
         
         # Apply beta scaling
-        scaled_length = normalized_length #* betas[i]
+        #scaled_length = normalized_length * (1-betas[i])
         
         # Convert to discrete index
-        shift = int(max_n * scaled_length)
+        shift =  int(max_n*normalized_length/2) - int(betas[i]*max_n/2)
+        print(shift)
         shifts.append(shift)
     return shifts
 
