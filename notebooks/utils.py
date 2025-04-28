@@ -192,103 +192,14 @@ def get_plot_len_and_size(
     beta: List[float],
 ) -> Tuple[List[int], List[float]]:
     segments = ctr.get_ordered_segments(False)[1:]
-    print(segments)
-    max_len = ctr.tubes[0][1].params["L"]
     indices = []
     tube_ds = []
     for i, tube in enumerate(ctr.tubes[::-1]): # reverse tube array to start with most outer tube
         params = tube[1].params
-        L = params["L"]
-        str_L = params["straight_length"]
         tube_ds.append(params["r_outer"])
-        if str_L > (1-beta[i])*L:
-            normalized_len = segments[2*i]/max_len
-            indices.append(int(array_len*normalized_len))
-        else:
-            normalized_len = segments[2*i+1]/max_len
-            indices.append(int(array_len*normalized_len))
-        print(normalized_len)
-        print(int(array_len * normalized_len))
-
-    return indices, tube_ds
-
-def old_get_plot_len_and_size(
-    ctr,
-    array_len: int,
-    beta: List[float],
-) -> Tuple[List[int], List[float]]:
-    """
-    Compute discrete backbone indices that mark where each tube ends and
-    return the corresponding outer diameters.
-
-    Parameters
-    ----------
-    ctr : CTR
-        Concentric‑tube robot instance exposing
-        * ``ctr.tubes`` – iterable whose items look like (name, tube_object) and
-          whose tube_object carries ``params["L"]`` and ``params["r_outer"]``.
-        * ``ctr.get_ordered_segments()`` – list ``[0, s₁, L₁, s₂, L₂, …]`` where
-          every pair (sᵢ, Lᵢ) = (end of straight part, tube tip) belongs to tube i,
-          starting with the **innermost** tube (first deployed).
-          When a tube is fully covered by its neighbours the tip entry may be
-          missing, so three values per tube are also valid.
-    array_len : int
-        Number of points that discretise the robot backbone (length of your FK/IK
-        result array).
-    beta : list[float]
-        Deployment ratio of each tube (0 = completely retracted, 1 = fully
-        deployed) – *same order as ctr.tubes*.
-
-    Returns
-    -------
-    indices : list[int]
-        Integer indices, ascending, whose i‑th value is the **last point that
-        still belongs to tube i** in the discretised backbone.
-    tube_ds : list[float]
-        Outer diameters of the tubes in the same order as *indices*.
-    """
-    # ──────────────────────────────────────────────────────────────────────────
-    # Validate / prepare the geometry information
-    segments = ctr.get_ordered_segments()
-    if not segments or segments[0] != 0.0:
-        raise ValueError("ctr.get_ordered_segments() must start with 0.0")
-
-    segments = segments[1:]                         # drop the leading zero
-    n_tubes = len(ctr.tubes)
-    if len(beta) != n_tubes:
-        raise ValueError("len(beta) must equal the number of tubes")
-
-    # Innermost → outermost for plotting convenience
-    tube_lengths = [tube[1].params["L"] for tube in ctr.tubes][::-1]
-    tube_ds      = [tube[1].params["r_outer"] for tube in ctr.tubes][::-1]
-
-    backbone_total_len = float(segments[-1])
-    if backbone_total_len <= 0:
-        raise ValueError("Total backbone length must be positive")
-
-    # ──────────────────────────────────────────────────────────────────────────
-    # Convert physical segment ends into discrete indices
-    indices: List[int] = []
-    for i, (L_i, β_i) in enumerate(zip(tube_lengths, beta)):
-        # Retrieve the two markers belonging to this tube
-        straight = segments[2 * i]                           # always present
-        tip      = segments[2 * i + 1] if 2 * i + 1 < len(segments) else straight
-
-        # Desired physical length outside the base
-        desired_len = β_i * L_i
-
-        # Take whichever marker is closer to `desired_len`
-        seg_end = min((straight, tip), key=lambda s: abs(s - desired_len))
-
-        # Map physical length to array index (clamped to valid range)
-        #idx = max(0, min(array_len - 1,
-        #                 round(array_len * seg_end / backbone_total_len)))
-        indices.append(seg_end)
-
-    indices = to_index(indices)
-    indices[-1] = array_len -1 
-    
-    return indices, tube_ds
+        indices.append(int((1-beta[i])*array_len))
+        
+    return indices, tube_ds[::-1]
 
 
 def darken_color(color, factor=0.7):
